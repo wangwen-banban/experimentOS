@@ -2,181 +2,37 @@
 #![no_main]
 #![feature(panic_info_message)]
 
+use core::arch::global_asm;
+
 #[macro_use]
 mod console;
 mod lang_items;
 mod sbi;
 mod syscall;
 mod trap;
-mod batch;
-
-use core::arch::global_asm;
+mod loader;
+mod config;
+mod task;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
 
 fn clear_bss() {
-        extern "C" {
-                    fn sbss();
-                            fn ebss();
-                                }
-            (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
+    extern "C" {
+        fn sbss();
+        fn ebss();
+    }
+    (sbss as usize..ebss as usize).for_each(|a| {
+        unsafe { (a as *mut u8).write_volatile(0) }
+    });
 }
 
 #[no_mangle]
 pub fn rust_main() -> ! {
-        clear_bss();
-            println!("[Kernel] Hello, world!");
-                trap::init();
-                    batch::init();
-                        batch::run_next_app();
+    clear_bss();
+    println!("[kernel] Hello, world!");
+    trap::init();
+    loader::load_apps();
+    task::run_first_task();
+    panic!("Unreachable in rust_main!");
 }
-
-/*#![no_std]
-#![no_main]
-#![feature(panic_info_message)]
-#[macro_use]
-
-mod console;
-mod lang_items;
-mod sbi;
-
-use core::arch::global_asm;
-
-global_asm!(include_str!("entry.asm"));
-fn clear_bss() {
-        extern "C" {
-                    fn sbss();
-                            fn ebss();
-                                }
-            (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
-}
-
-#[no_mangle]
-pub fn rust_main() -> ! {
-        extern "C" {
-                    fn stext();
-                            fn etext();
-                                    fn srodata();
-                                            fn erodata();
-                                                    fn sdata();
-                                                            fn edata();
-                                                                    fn sbss();
-                                                                            fn ebss();
-                                                                                    fn boot_stack();
-                                                                                            fn boot_stack_top();
-                                                                                                }
-            clear_bss();
-                println!("Hello, world!");
-                    println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
-                        println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
-                            println!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
-                                println!(
-                                            "boot_stack [{:#x}, {:#x})",
-                                                    boot_stack as usize, boot_stack_top as usize
-                                                        );
-                                    println!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
-                                        println!("Hello, world!");
-                                            panic!("Shutdown machine!");
-}
-
-
-
-
-*/
-
-/*#![no_std]
-#![no_main]
-#![feature(panic_info_message)]
-
-mod sbi;
-mod console;
-
-fn clear_bss() {
-        extern "C" {
-                    fn sbss();
-                            fn ebss();
-                                }
-            (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
-}
-
-use core::arch::global_asm;
-
-global_asm!(include_str!("entry.asm"));
-
-#[no_mangle]
-pub fn rust_main() -> ! {
-        loop{};
-}
-
-
-
-use core::panic::PanicInfo;
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-        loop {}
-}
-
-use core::arch::asm;
-
-const SYSCALL_EXIT: usize = 93;
-
-fn syscall(id: usize, args: [usize; 3]) -> isize {
-        let mut ret: isize;
-            unsafe {
-                        asm!("ecall",
-                                          in("x10") args[0],
-                                                       in("x11") args[1],
-                                                                    in("x12") args[2],
-                                                                                 in("x17") id,
-                                                                                              lateout("x10") ret
-                                                                                                      );
-                            }
-                ret
-}
-
-pub fn sys_exit(xstate: i32) -> isize {
-        syscall(SYSCALL_EXIT, [xstate as usize, 0, 0])
-}
-
-#[no_mangle]
-extern "C" fn _start() {
-    println!("Hello, world!");
-    sys_exit(9);
-}
-
-const SYSCALL_WRITE: usize = 64;
-
-pub fn sys_write(fd: usize, buffer: &[u8]) -> isize {
-      syscall(SYSCALL_WRITE, [fd, buffer.as_ptr() as usize, buffer.len()])
-}
-
-//struct Stdout;
-
-//impl Write for Stdout {
-//        fn write_str(&mut self, s: &str) -> fmt::Result {
-//                    sys_write(1, s.as_bytes());
-//                            Ok(())
-//                                    }
-//}
-
-//pub fn print(args: fmt::Arguments) {
-//        Stdout.write_fmt(args).unwrap();
-//}
-
-//use core::fmt::{self, Write};
-
-//#[macro_export]
-//macro_rules! print {
-//        ($fmt: literal $(, $($arg: tt)+)?) => {
-//                    $crate::console::print(format_args!($fmt $(, $($arg)+)?));
-//                        }
-//}
-
-//#[macro_export]
-//macro_rules! println {
-//        ($fmt: literal $(, $($arg: tt)+)?) => {
-//                    print(format_args!(concat!($fmt, "\n") $(, $($arg)+)?));
-//                        }
-//} */

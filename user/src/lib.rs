@@ -7,6 +7,8 @@ pub mod console;
 mod syscall;
 mod lang_items;
 
+pub fn yield_() -> isize { sys_yield() }
+
 fn clear_bss() {
         extern "C" {
                     fn start_bss();

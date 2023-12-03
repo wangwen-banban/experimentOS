@@ -23,7 +23,8 @@ use riscv::register::{
 };
 
 use crate::syscall::syscall;
-use crate::batch::run_next_app;
+// use crate::batch::run_next_app;
+// use crate::lang_items::panic;
 
 #[no_mangle]
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
@@ -37,11 +38,13 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                                     Trap::Exception(Exception::StoreFault) |
                                                 Trap::Exception(Exception::StorePageFault) => {
                                                                 println!("[kernel] PageFault in application, core dumped.");
-                                                                            run_next_app();
+                                                                panic!("123");
+                                                                        //     run_next_app();
                                                                                     }
                                             Trap::Exception(Exception::IllegalInstruction) => {
                                                             println!("[kernel] IllegalInstruction in application, core dumped.");
-                                                                        run_next_app();
+                                                            panic!("123");
+                                                                        // run_next_app();
                                                                                 }
                                                     _ => {
                                                                     panic!("Unsupported trap {:?}, stval = {:#x}!", scause.cause(), stval);
